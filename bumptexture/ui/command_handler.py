@@ -14,6 +14,7 @@ import traceback
 import os
 import json
 import base64
+from pathlib import Path
 
 from core.image_reader import load_image, load_image_from_bytes
 from core.displacement import compute_displaced_mesh
