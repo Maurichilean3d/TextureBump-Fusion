@@ -8,8 +8,6 @@
     /* ─── Reset & base ──────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
     :root {
       --bg:        #0f1117;
       --surface:   #181c27;
@@ -28,7 +26,7 @@
     }
 
     body {
-      font-family: 'Inter', system-ui, sans-serif;
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
       background: var(--bg);
       color: var(--text);
       font-size: 13px;
@@ -472,11 +470,11 @@
   <div class="card">
     <div class="section-label">Mesh Resolution (U×V)</div>
     <div class="res-group" id="resGroup">
-      <div class="res-btn" onclick="setRes(8)">8×8</div>
-      <div class="res-btn" onclick="setRes(16)">16×16</div>
-      <div class="res-btn active" onclick="setRes(32)">32×32</div>
-      <div class="res-btn" onclick="setRes(48)">48×48</div>
-      <div class="res-btn" onclick="setRes(64)">64×64</div>
+      <div class="res-btn" onclick="setRes(8, this)">8×8</div>
+      <div class="res-btn" onclick="setRes(16, this)">16×16</div>
+      <div class="res-btn active" onclick="setRes(32, this)">32×32</div>
+      <div class="res-btn" onclick="setRes(48, this)">48×48</div>
+      <div class="res-btn" onclick="setRes(64, this)">64×64</div>
     </div>
     <div style="font-size:10px;color:var(--muted);margin-top:8px">
       Max 64×64 (≈8k triangles) recommended for reliable BRep conversion
@@ -618,10 +616,10 @@ function updatePreview(srcCanvas, name, size, format) {
 }
 
 /* ─── Resolution selector ───────────────────────────────────────── */
-function setRes(n) {
+function setRes(n, el) {
   selectedResolution = n;
   document.querySelectorAll('.res-btn').forEach(b => b.classList.remove('active'));
-  event.currentTarget.classList.add('active');
+  el.classList.add('active');
 }
 
 /* ─── Slider display ────────────────────────────────────────────── */

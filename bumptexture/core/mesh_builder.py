@@ -7,7 +7,6 @@ then automatically triggers the Mesh → BRep conversion command.
 import adsk.core
 import adsk.fusion
 import traceback
-import time
 from typing import List, Optional
 
 
@@ -62,35 +61,43 @@ def _trigger_brep_conversion(
     mesh_body: adsk.fusion.MeshBody
 ):
     """
-    Select the mesh body and invoke the Mesh → BRep conversion command.
-    Uses executeTextCommand with ParaMeshConvertCommand (Fusion 360 2.0+).
+    Convert a MeshBody to BRep.
+    Strategy 1: Use the convertMeshFeatures API (Fusion 360 2.0.12918+).
+    Strategy 2: Fall back to executeTextCommand with selection.
+    Strategy 3: Show a manual instruction message box.
     """
-    try:
-        # Make sure we're in the right design
-        design = adsk.fusion.Design.cast(app.activeProduct)
-        if not design:
-            return
+    design = adsk.fusion.Design.cast(app.activeProduct)
+    if not design:
+        return
 
-        # Clear selections and select our mesh body
+    # --- Strategy 1: Direct API conversion ---
+    try:
+        component = mesh_body.parentComponent
+        convert_features = component.features.convertMeshFeatures
+        convert_input = convert_features.createInput(
+            mesh_body, adsk.fusion.ConvertMeshAccuracy.LowMeshAccuracy
+        )
+        convert_features.add(convert_input)
+        return  # success
+    except Exception:
+        pass  # API not available in this Fusion version; try next strategy
+
+    # --- Strategy 2: executeTextCommand with selection ---
+    try:
         selections = ui.activeSelections
         selections.clear()
         selections.add(mesh_body)
-
-        # Small yield to let Fusion process the selection
         adsk.doEvents()
-
-        # Switch to the Mesh workspace first if needed
-        # Then execute the conversion
         app.executeTextCommand('Commands.Start ParaMeshConvertCommand')
-
-        # Wait briefly for command to start
         adsk.doEvents()
-
+        return  # success (command launched)
     except Exception:
-        # Non-fatal: mesh was created, conversion dialog is optional
-        ui.messageBox(
-            'MeshBody created successfully!\n\n'
-            'Auto-conversion to BRep could not be triggered automatically.\n'
-            'Please use Mesh → Convert Mesh in the toolbar to convert manually.',
-            'BumpTexture – Manual Step Required'
-        )
+        pass
+
+    # --- Strategy 3: Manual fallback ---
+    ui.messageBox(
+        'MeshBody "BumpTexture_Mesh" created successfully!\n\n'
+        'Auto-conversion to BRep could not be triggered.\n'
+        'To convert manually: select the mesh body → Mesh tab → Convert Mesh.',
+        'BumpTexture – Manual Step Required'
+    )
