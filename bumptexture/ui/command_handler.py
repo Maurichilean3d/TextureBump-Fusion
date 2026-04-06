@@ -14,6 +14,7 @@ import traceback
 import os
 import json
 import base64
+from pathlib import Path
 
 from core.image_reader import load_image, load_image_from_bytes
 from core.displacement import compute_displaced_mesh
@@ -21,7 +22,8 @@ from core.mesh_builder import build_mesh_and_convert
 
 _addin_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PALETTE_ID = 'BumpTexturePalette'
-PALETTE_HTML = os.path.join(_addin_dir, 'ui', 'palette.html')
+_PALETTE_HTML_PATH = Path(_addin_dir) / 'ui' / 'palette.html'
+PALETTE_HTML = _PALETTE_HTML_PATH.resolve().as_uri()
 
 # Store selected face globally for async palette ↔ Python communication
 _selected_face: adsk.fusion.BRepFace = None
