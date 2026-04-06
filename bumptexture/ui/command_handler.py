@@ -14,7 +14,7 @@ import traceback
 import os
 import json
 import base64
-from pathlib import Path
+import pathlib
 
 from core.image_reader import load_image, load_image_from_bytes
 from core.displacement import compute_displaced_mesh
@@ -22,9 +22,10 @@ from core.mesh_builder import build_mesh_and_convert
 
 _addin_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PALETTE_ID = 'BumpTexturePalette'
-# Forward slashes required: Fusion passes this path as a file:// URL to its
-# Chromium WebView, which rejects backslashes (Windows os.path.join uses \).
-PALETTE_HTML = os.path.join(_addin_dir, 'ui', 'palette.html').replace('\\', '/')
+# pathlib.Path.as_uri() produces a proper file:///C:/... URI on Windows,
+# which is required by Fusion's Chromium WebView. A raw file path (even with
+# forward slashes) is not a valid URL and causes ERR_INVALID_URL.
+PALETTE_HTML = pathlib.Path(_addin_dir, 'ui', 'palette.html').as_uri()
 
 # Store selected face globally for async palette ↔ Python communication
 _selected_face: adsk.fusion.BRepFace = None
