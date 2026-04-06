@@ -1,8 +1,11 @@
 {
-  "autodeskProduct": "Fusion360",
+  "autodeskProduct": "Fusion",
   "type": "addin",
   "id": "bumptexture",
   "author": "BumpTexture",
+  "name": {
+    "": "BumpTexture"
+  },
   "description": {
     "": "Apply grayscale displacement maps to BRep faces to generate textured 3D geometry"
   },
