@@ -21,7 +21,9 @@ from core.mesh_builder import build_mesh_and_convert
 
 _addin_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PALETTE_ID = 'BumpTexturePalette'
-PALETTE_HTML = os.path.join(_addin_dir, 'ui', 'palette.html')
+# Forward slashes required: Fusion passes this path as a file:// URL to its
+# Chromium WebView, which rejects backslashes (Windows os.path.join uses \).
+PALETTE_HTML = os.path.join(_addin_dir, 'ui', 'palette.html').replace('\\', '/')
 
 # Store selected face globally for async palette ↔ Python communication
 _selected_face: adsk.fusion.BRepFace = None
