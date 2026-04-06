@@ -24,8 +24,8 @@ _cmd_def = None
 COMMAND_ID = 'BumpTextureCmd'
 COMMAND_NAME = 'BumpTexture'
 COMMAND_TOOLTIP = 'Apply a grayscale displacement map to BRep faces to generate 3D textured geometry'
-PANEL_ID = 'SolidCreatePanel'
 WORKSPACE_ID = 'FusionSolidEnvironment'
+FALLBACK_PANEL_IDS = ('SolidCreatePanel', 'SolidScriptsAddinsPanel')
 
 
 def run(context):
@@ -57,12 +57,21 @@ def run(context):
         # Add button to Create panel in Solid workspace
         workspace = ui.workspaces.itemById(WORKSPACE_ID)
         if workspace:
-            panel = workspace.toolbarPanels.itemById(PANEL_ID)
+            panel = None
+            for panel_id in FALLBACK_PANEL_IDS:
+                panel = workspace.toolbarPanels.itemById(panel_id)
+                if panel:
+                    break
+
             if panel:
-                # Add at the end
                 ctrl = panel.controls.addCommand(_cmd_def)
                 ctrl.isPromotedByDefault = False
                 ctrl.isPromoted = False
+            elif ui:
+                ui.messageBox(
+                    'BumpTexture loaded, but no supported toolbar panel was found.\n'
+                    'Please open the Solid workspace and reload the add-in.'
+                )
 
         adsk.autoTerminate(False)
 
@@ -78,14 +87,15 @@ def stop(context):
         app = adsk.core.Application.get()
         ui = app.userInterface
 
-        # Remove controls from all panels
+        # Remove controls from all known panels
         workspace = ui.workspaces.itemById(WORKSPACE_ID)
         if workspace:
-            panel = workspace.toolbarPanels.itemById(PANEL_ID)
-            if panel:
-                ctrl = panel.controls.itemById(COMMAND_ID)
-                if ctrl:
-                    ctrl.deleteMe()
+            for panel_id in FALLBACK_PANEL_IDS:
+                panel = workspace.toolbarPanels.itemById(panel_id)
+                if panel:
+                    ctrl = panel.controls.itemById(COMMAND_ID)
+                    if ctrl:
+                        ctrl.deleteMe()
 
         # Delete command definition
         cmd_def = ui.commandDefinitions.itemById(COMMAND_ID)
