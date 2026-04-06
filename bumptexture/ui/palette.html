@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BumpTexture</title>
+  <style>
+    /* ─── Reset & base ──────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+    :root {
+      --bg:        #0f1117;
+      --surface:   #181c27;
+      --surface2:  #1e2336;
+      --border:    #2a3050;
+      --accent:    #5f73ff;
+      --accent2:   #7c3aed;
+      --accent-g:  linear-gradient(135deg,#5f73ff,#7c3aed);
+      --text:      #e2e8f0;
+      --muted:     #6b7497;
+      --success:   #34d399;
+      --warning:   #fbbf24;
+      --error:     #f87171;
+      --radius:    10px;
+      --shadow:    0 4px 24px rgba(0,0,0,0.4);
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.5;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ─── Header ────────────────────────────────────────────────── */
+    .header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .logo {
+      width: 32px; height: 32px;
+      background: var(--accent-g);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      box-shadow: 0 2px 10px rgba(95,115,255,0.4);
+    }
+    .header-title { font-weight: 700; font-size: 15px; letter-spacing: -0.3px; }
+    .header-sub { font-size: 11px; color: var(--muted); }
+
+    /* ─── Scroll container ──────────────────────────────────────── */
+    .scroll { flex: 1; overflow-y: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 14px; }
+    .scroll::-webkit-scrollbar { width: 5px; }
+    .scroll::-webkit-scrollbar-track { background: transparent; }
+    .scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
+
+    /* ─── Card / Section ─────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+    }
+    .section-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    /* ─── Face selection ─────────────────────────────────────────── */
+    .face-row {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .face-info {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 12px;
+      color: var(--muted);
+      transition: all 0.2s;
+    }
+    .face-info.selected { color: var(--success); border-color: var(--success); }
+    .btn-select {
+      background: var(--accent-g);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .btn-select:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-select:active { transform: translateY(0); }
+
+    /* ─── Texture gallery ────────────────────────────────────────── */
+    .texture-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+    }
+    .tex-thumb {
+      aspect-ratio: 1;
+      border-radius: 6px;
+      border: 2px solid transparent;
+      cursor: pointer;
+      overflow: hidden;
+      transition: border-color 0.15s, transform 0.1s, box-shadow 0.15s;
+      background: var(--surface2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      position: relative;
+    }
+    .tex-thumb img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      border-radius: 4px;
+      display: block;
+    }
+    .tex-thumb canvas {
+      width: 100%; height: 100%;
+      border-radius: 4px;
+      display: block;
+    }
+    .tex-thumb:hover { transform: scale(1.06); box-shadow: 0 4px 16px rgba(95,115,255,0.3); }
+    .tex-thumb.active { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(95,115,255,0.25); }
+    .tex-label {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      background: linear-gradient(transparent, rgba(0,0,0,0.75));
+      font-size: 9px;
+      font-weight: 600;
+      color: #fff;
+      padding: 4px 4px 3px;
+      text-align: center;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .tex-thumb:hover .tex-label,
+    .tex-thumb.active .tex-label { opacity: 1; }
+
+    .upload-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: var(--surface2);
+      border: 1.5px dashed var(--border);
+      border-radius: 6px;
+      padding: 9px 12px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+      margin-top: 8px;
+      width: 100%;
+    }
+    .upload-btn:hover { border-color: var(--accent); color: var(--accent); }
+    #fileInput { display: none; }
+
+    /* ─── Preview bar ────────────────────────────────────────────── */
+    .preview-bar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .preview-canvas-wrap {
+      width: 80px; height: 80px;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    #previewCanvas { width: 100%; height: 100%; display: block; }
+    .preview-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .preview-name {
+      font-weight: 600;
+      font-size: 13px;
+    }
+    .preview-stat {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    /* ─── Sliders ────────────────────────────────────────────────── */
+    .param-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 0;
+    }
+    .param-label { width: 80px; font-size: 11px; color: var(--muted); flex-shrink: 0; }
+    .param-slider {
+      flex: 1;
+      -webkit-appearance: none;
+      height: 4px;
+      border-radius: 999px;
+      background: var(--border);
+      outline: none;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .param-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      box-shadow: 0 0 0 3px rgba(95,115,255,0.2);
+      transition: box-shadow 0.15s;
+    }
+    .param-slider:hover::-webkit-slider-thumb { box-shadow: 0 0 0 5px rgba(95,115,255,0.3); }
+    .param-val {
+      width: 38px;
+      text-align: right;
+      font-size: 11px;
+      font-variant-numeric: tabular-nums;
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    /* ─── Toggle row ─────────────────────────────────────────────── */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 0;
+    }
+    .toggle-row label { font-size: 12px; color: var(--text); cursor: pointer; }
+    .toggle {
+      position: relative;
+      width: 34px; height: 18px;
+      cursor: pointer;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-track {
+      position: absolute;
+      inset: 0;
+      border-radius: 999px;
+      background: var(--border);
+      transition: background 0.2s;
+    }
+    .toggle input:checked + .toggle-track { background: var(--accent); }
+    .toggle-thumb {
+      position: absolute;
+      top: 2px; left: 2px;
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: #fff;
+      transition: transform 0.2s;
+    }
+    .toggle input:checked ~ .toggle-thumb { transform: translateX(16px); }
+
+    /* ─── Resolution selector ────────────────────────────────────── */
+    .res-group {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .res-btn {
+      flex: 1;
+      min-width: 48px;
+      padding: 6px 4px;
+      border-radius: 6px;
+      border: 1.5px solid var(--border);
+      background: var(--surface2);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 600;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .res-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .res-btn.active { border-color: var(--accent); background: rgba(95,115,255,0.12); color: var(--accent); }
+
+    /* ─── Divider ────────────────────────────────────────────────── */
+    .divider { height: 1px; background: var(--border); margin: 6px 0; }
+
+    /* ─── Status bar ─────────────────────────────────────────────── */
+    .status-bar {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .status-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--muted);
+      animation: none;
+      flex-shrink: 0;
+    }
+    .status-dot.working { background: var(--warning); animation: pulse 1s infinite; }
+    .status-dot.ok { background: var(--success); }
+    .status-dot.err { background: var(--error); }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    .status-text { flex: 1; font-size: 11px; color: var(--muted); }
+
+    /* ─── Apply button ────────────────────────────────────────────── */
+    .btn-apply {
+      background: var(--accent-g);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 11px 22px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.02em;
+      box-shadow: 0 4px 14px rgba(95,115,255,0.35);
+      transition: opacity 0.15s, transform 0.1s, box-shadow 0.15s;
+      white-space: nowrap;
+    }
+    .btn-apply:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(95,115,255,0.45); }
+    .btn-apply:active { transform: translateY(0); }
+    .btn-apply:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    /* ─── two-col grid ───────────────────────────────────────────── */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; }
+  </style>
+</head>
+<body>
+
+<!-- ─── Header ──────────────────────────────────────────────────── -->
+<div class="header">
+  <div class="logo">⬡</div>
+  <div>
+    <div class="header-title">BumpTexture</div>
+    <div class="header-sub">Displacement map → BRep face</div>
+  </div>
+</div>
+
+<!-- ─── Main scroll area ─────────────────────────────────────────── -->
+<div class="scroll">
+
+  <!-- 1. Face selection -->
+  <div class="card">
+    <div class="section-label">Target Face</div>
+    <div class="face-row">
+      <div class="face-info" id="faceInfo">No face selected</div>
+      <button class="btn-select" id="btnSelectFace" onclick="selectFace()">↗ Select Face</button>
+    </div>
+  </div>
+
+  <!-- 2. Displacement map gallery -->
+  <div class="card">
+    <div class="section-label">Displacement Map</div>
+    <div class="texture-grid" id="textureGrid">
+      <!-- Generated by JS -->
+    </div>
+    <label class="upload-btn" for="fileInput">
+      <span>⊕</span> Upload custom map (PNG / JPG)
+    </label>
+    <input type="file" id="fileInput" accept=".png,.jpg,.jpeg" onchange="loadCustomFile(this)" />
+  </div>
+
+  <!-- 3. Preview -->
+  <div class="card" id="previewCard" style="display:none">
+    <div class="section-label">Preview</div>
+    <div class="preview-bar">
+      <div class="preview-canvas-wrap">
+        <canvas id="previewCanvas" width="80" height="80"></canvas>
+      </div>
+      <div class="preview-info">
+        <div class="preview-name" id="previewName">–</div>
+        <div class="preview-stat" id="previewSize">–</div>
+        <div class="preview-stat" id="previewFormat">–</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Parameters -->
+  <div class="card">
+    <div class="section-label">Texture Depth</div>
+
+    <div class="param-row">
+      <div class="param-label">Amplitude</div>
+      <input type="range" class="param-slider" id="sliderAmplitude" min="0.1" max="20" step="0.1" value="2.0"
+        oninput="updateVal('valAmplitude', this.value, ' mm')">
+      <div class="param-val" id="valAmplitude">2.0 mm</div>
+    </div>
+
+    <div class="toggle-row">
+      <label for="chkSymmetric">Symmetric displacement (±)</label>
+      <label class="toggle">
+        <input type="checkbox" id="chkSymmetric">
+        <div class="toggle-track"></div>
+        <div class="toggle-thumb"></div>
+      </label>
+    </div>
+    <div class="toggle-row">
+      <label for="chkInvert">Invert map</label>
+      <label class="toggle">
+        <input type="checkbox" id="chkInvert">
+        <div class="toggle-track"></div>
+        <div class="toggle-thumb"></div>
+      </label>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-label" style="margin-top:6px">Transform</div>
+
+    <div class="two-col">
+      <div class="param-row">
+        <div class="param-label">Scale U</div>
+        <input type="range" class="param-slider" id="sliderScaleU" min="0.1" max="10" step="0.1" value="1.0"
+          oninput="updateVal('valScaleU', this.value, 'x')">
+        <div class="param-val" id="valScaleU">1.0x</div>
+      </div>
+      <div class="param-row">
+        <div class="param-label">Scale V</div>
+        <input type="range" class="param-slider" id="sliderScaleV" min="0.1" max="10" step="0.1" value="1.0"
+          oninput="updateVal('valScaleV', this.value, 'x')">
+        <div class="param-val" id="valScaleV">1.0x</div>
+      </div>
+      <div class="param-row">
+        <div class="param-label">Offset U</div>
+        <input type="range" class="param-slider" id="sliderOffsetU" min="0" max="1" step="0.01" value="0"
+          oninput="updateVal('valOffsetU', this.value, '')">
+        <div class="param-val" id="valOffsetU">0.00</div>
+      </div>
+      <div class="param-row">
+        <div class="param-label">Offset V</div>
+        <input type="range" class="param-slider" id="sliderOffsetV" min="0" max="1" step="0.01" value="0"
+          oninput="updateVal('valOffsetV', this.value, '')">
+        <div class="param-val" id="valOffsetV">0.00</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-label" style="margin-top:6px">Smoothing</div>
+    <div class="param-row">
+      <div class="param-label">Blur sigma</div>
+      <input type="range" class="param-slider" id="sliderBlur" min="0" max="5" step="0.1" value="0"
+        oninput="updateVal('valBlur', this.value, '')">
+      <div class="param-val" id="valBlur">0.0</div>
+    </div>
+  </div>
+
+  <!-- 5. Resolution -->
+  <div class="card">
+    <div class="section-label">Mesh Resolution (U×V)</div>
+    <div class="res-group" id="resGroup">
+      <div class="res-btn" onclick="setRes(8)">8×8</div>
+      <div class="res-btn" onclick="setRes(16)">16×16</div>
+      <div class="res-btn active" onclick="setRes(32)">32×32</div>
+      <div class="res-btn" onclick="setRes(48)">48×48</div>
+      <div class="res-btn" onclick="setRes(64)">64×64</div>
+    </div>
+    <div style="font-size:10px;color:var(--muted);margin-top:8px">
+      Max 64×64 (≈8k triangles) recommended for reliable BRep conversion
+    </div>
+
+    <div class="divider"></div>
+    <div class="toggle-row" style="margin-top:6px">
+      <label for="chkAutoConvert">Auto-convert MeshBody → BRep</label>
+      <label class="toggle">
+        <input type="checkbox" id="chkAutoConvert" checked>
+        <div class="toggle-track"></div>
+        <div class="toggle-thumb"></div>
+      </label>
+    </div>
+  </div>
+
+</div><!-- end .scroll -->
+
+<!-- ─── Status + Apply bar ────────────────────────────────────────── -->
+<div class="status-bar">
+  <div class="status-dot" id="statusDot"></div>
+  <div class="status-text" id="statusText">Ready. Select a face and a displacement map.</div>
+  <button class="btn-apply" id="btnApply" onclick="applyTexture()" disabled>Apply →</button>
+</div>
+
+<script>
+/* ─── State ──────────────────────────────────────────────────────── */
+let selectedTexturePath = '';
+let selectedTextureB64  = '';
+let selectedTextureName = '';
+let faceSelected = false;
+let selectedResolution = 32;
+let activeThumbIndex = -1;
+
+/* ─── Built-in textures (generated procedurally on canvas) ───────── */
+const TEXTURES = [
+  { name: 'Crystal',    fn: drawCrystal    },
+  { name: 'Hexagonal',  fn: drawHexagonal  },
+  { name: 'Waves',      fn: drawWaves      },
+  { name: 'Dots',       fn: drawDots       },
+  { name: 'Pyramids',   fn: drawPyramids   },
+  { name: 'Scales',     fn: drawScales     },
+  { name: 'Knurl',      fn: drawKnurl      },
+  { name: 'Wood',       fn: drawWood       },
+  { name: 'Leather',    fn: drawLeather    },
+  { name: 'Diamond',    fn: drawDiamond    },
+];
+
+/* ─── Build gallery ─────────────────────────────────────────────── */
+function buildGallery() {
+  const grid = document.getElementById('textureGrid');
+  TEXTURES.forEach((t, i) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'tex-thumb';
+    wrap.id = 'thumb_' + i;
+    wrap.onclick = () => selectBuiltinTexture(i);
+
+    const cv = document.createElement('canvas');
+    cv.width = 80; cv.height = 80;
+    t.fn(cv.getContext('2d'), 80, 80);
+    wrap.appendChild(cv);
+
+    const lbl = document.createElement('div');
+    lbl.className = 'tex-label';
+    lbl.textContent = t.name;
+    wrap.appendChild(lbl);
+
+    grid.appendChild(wrap);
+  });
+}
+
+function selectBuiltinTexture(idx) {
+  if (activeThumbIndex >= 0) {
+    document.getElementById('thumb_' + activeThumbIndex).classList.remove('active');
+  }
+  activeThumbIndex = idx;
+  document.getElementById('thumb_' + idx).classList.add('active');
+
+  // Extract canvas data as base64
+  const cv = document.querySelector('#thumb_' + idx + ' canvas');
+  selectedTextureB64 = cv.toDataURL('image/png').split(',')[1];
+  selectedTexturePath = '';
+  selectedTextureName = TEXTURES[idx].name;
+
+  updatePreview(cv, TEXTURES[idx].name, '80×80', 'Procedural PNG');
+  checkReady();
+}
+
+/* ─── Custom file upload ────────────────────────────────────────── */
+function loadCustomFile(input) {
+  if (!input.files || !input.files[0]) return;
+  const file = input.files[0];
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const b64 = e.target.result.split(',')[1];
+    const img = new Image();
+    img.onload = () => {
+      // Render scaled preview on a canvas
+      const cv = document.createElement('canvas');
+      cv.width = 80; cv.height = 80;
+      const ctx = cv.getContext('2d');
+      // Convert to grayscale
+      ctx.drawImage(img, 0, 0, 80, 80);
+      const id = ctx.getImageData(0, 0, 80, 80);
+      for (let i = 0; i < id.data.length; i += 4) {
+        const lum = 0.299*id.data[i] + 0.587*id.data[i+1] + 0.114*id.data[i+2];
+        id.data[i] = id.data[i+1] = id.data[i+2] = lum;
+      }
+      ctx.putImageData(id, 0, 0);
+
+      // Deselect any gallery item
+      if (activeThumbIndex >= 0) {
+        document.getElementById('thumb_' + activeThumbIndex).classList.remove('active');
+        activeThumbIndex = -1;
+      }
+
+      selectedTextureB64 = cv.toDataURL('image/png').split(',')[1];
+      selectedTexturePath = '';
+      selectedTextureName = file.name;
+      updatePreview(cv, file.name, `${img.width}×${img.height}`, file.type || 'Image');
+      checkReady();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+/* ─── Preview update ────────────────────────────────────────────── */
+function updatePreview(srcCanvas, name, size, format) {
+  document.getElementById('previewCard').style.display = 'block';
+  document.getElementById('previewName').textContent = name;
+  document.getElementById('previewSize').textContent = size;
+  document.getElementById('previewFormat').textContent = format;
+
+  const dest = document.getElementById('previewCanvas');
+  const ctx = dest.getContext('2d');
+  ctx.clearRect(0, 0, dest.width, dest.height);
+  ctx.drawImage(srcCanvas, 0, 0, dest.width, dest.height);
+}
+
+/* ─── Resolution selector ───────────────────────────────────────── */
+function setRes(n) {
+  selectedResolution = n;
+  document.querySelectorAll('.res-btn').forEach(b => b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+}
+
+/* ─── Slider display ────────────────────────────────────────────── */
+function updateVal(id, val, suffix) {
+  const v = parseFloat(val);
+  const fmt = (Math.abs(v) < 10) ? v.toFixed(1) : Math.round(v).toString();
+  document.getElementById(id).textContent = fmt + suffix;
+}
+
+/* ─── Face selection ────────────────────────────────────────────── */
+function selectFace() {
+  adsk.fusionSendData('selectFace', '{}');
+  setStatus('working', 'Click a face in the viewport…');
+}
+
+/* ─── Ready check ───────────────────────────────────────────────── */
+function checkReady() {
+  const ready = faceSelected && (selectedTextureB64 || selectedTexturePath);
+  document.getElementById('btnApply').disabled = !ready;
+  if (ready) setStatus('ok', 'Ready to apply displacement.');
+}
+
+/* ─── Apply ─────────────────────────────────────────────────────── */
+function applyTexture() {
+  if (!faceSelected) { setStatus('err', 'Select a face first.'); return; }
+  if (!selectedTextureB64 && !selectedTexturePath) { setStatus('err', 'Choose a displacement map.'); return; }
+
+  setStatus('working', 'Computing displacement…');
+  document.getElementById('btnApply').disabled = true;
+
+  const payload = {
+    texturePath: selectedTexturePath,
+    textureB64:  selectedTextureB64,
+    resolution:  selectedResolution,
+    amplitude:   parseFloat(document.getElementById('sliderAmplitude').value),
+    scaleU:      parseFloat(document.getElementById('sliderScaleU').value),
+    scaleV:      parseFloat(document.getElementById('sliderScaleV').value),
+    offsetU:     parseFloat(document.getElementById('sliderOffsetU').value),
+    offsetV:     parseFloat(document.getElementById('sliderOffsetV').value),
+    blur:        parseFloat(document.getElementById('sliderBlur').value),
+    symmetric:   document.getElementById('chkSymmetric').checked,
+    invert:      document.getElementById('chkInvert').checked,
+    autoConvert: document.getElementById('chkAutoConvert').checked,
+  };
+
+  adsk.fusionSendData('applyTexture', JSON.stringify(payload));
+}
+
+/* ─── Status helper ─────────────────────────────────────────────── */
+function setStatus(state, msg) {
+  const dot = document.getElementById('statusDot');
+  dot.className = 'status-dot' + (state ? ' ' + state : '');
+  document.getElementById('statusText').textContent = msg;
+}
+
+/* ─── Messages from Python ──────────────────────────────────────── */
+window.fusionJavaScriptHandler = {
+  handle: function(action, data) {
+    let d = {};
+    try { d = JSON.parse(data); } catch(e) {}
+
+    if (action === 'faceSelected') {
+      if (d.ok) {
+        faceSelected = true;
+        const el = document.getElementById('faceInfo');
+        el.textContent = `✓ ${d.bodyName || 'BRep Face'}`;
+        el.classList.add('selected');
+        setStatus('ok', 'Face selected. Choose a displacement map.');
+        checkReady();
+      } else {
+        setStatus('err', 'Selection failed: ' + (d.error || 'unknown'));
+      }
+    }
+
+    else if (action === 'progress') {
+      setStatus('working', d.msg || 'Processing…');
+    }
+
+    else if (action === 'applyResult') {
+      document.getElementById('btnApply').disabled = false;
+      if (d.ok) {
+        setStatus('ok', `Done! ${d.triangles} triangles, ${d.vertices} vertices. BRep conversion launched.`);
+      } else {
+        setStatus('err', 'Error: ' + (d.error || 'Unknown error'));
+        console.error(d.error);
+      }
+    }
+
+    return true;
+  }
+};
+
+/* ════════════════════════════════════════════════════════════════ */
+/* PROCEDURAL TEXTURE GENERATORS (grayscale patterns on canvas)   */
+/* ════════════════════════════════════════════════════════════════ */
+
+function drawCrystal(ctx, w, h) {
+  // Voronoi-like crystal pattern using random seeds
+  const N = 20;
+  const pts = Array.from({length:N}, () => [Math.random()*w, Math.random()*h]);
+  const img = ctx.createImageData(w, h);
+  for (let y=0;y<h;y++) for (let x=0;x<w;x++) {
+    let mn1=Infinity, mn2=Infinity;
+    pts.forEach(([px,py]) => {
+      const d=Math.hypot(x-px,y-py);
+      if (d<mn1){mn2=mn1;mn1=d;} else if(d<mn2){mn2=d;}
+    });
+    const v = Math.min(255, Math.round((mn2-mn1)*8));
+    const i=(y*w+x)*4; img.data[i]=img.data[i+1]=img.data[i+2]=v; img.data[i+3]=255;
+  }
+  ctx.putImageData(img, 0, 0);
+}
+
+function drawHexagonal(ctx, w, h) {
+  const size=10, sq3=Math.sqrt(3);
+  ctx.fillStyle='#000'; ctx.fillRect(0,0,w,h);
+  ctx.fillStyle='#fff';
+  for (let row=-1;row<h/size/sq3+2;row++) {
+    for (let col=-1;col<w/size/1.5+2;col++) {
+      const cx=col*size*1.5;
+      const cy=row*size*sq3 + (col%2===0?0:size*sq3/2);
+      ctx.beginPath();
+      for(let i=0;i<6;i++){
+        const a=Math.PI/180*60*i;
+        ctx.lineTo(cx+size*0.8*Math.cos(a), cy+size*0.8*Math.sin(a));
+      }
+      ctx.closePath(); ctx.fill();
+    }
+  }
+}
+
+function drawWaves(ctx, w, h) {
+  const img=ctx.createImageData(w,h);
+  for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+    const v=Math.round((Math.sin((x+y)*0.15)*0.5+Math.sin(x*0.1)*0.3+0.8)*127);
+    const i=(y*w+x)*4; img.data[i]=img.data[i+1]=img.data[i+2]=Math.min(255,v); img.data[i+3]=255;
+  }
+  ctx.putImageData(img,0,0);
+}
+
+function drawDots(ctx, w, h) {
+  ctx.fillStyle='#111'; ctx.fillRect(0,0,w,h);
+  const step=10;
+  const img=ctx.createImageData(w,h);
+  for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+    const cx=Math.round(x/step)*step, cy=Math.round(y/step)*step;
+    const d=Math.hypot(x-cx,y-cy);
+    const v=d<step*0.38?255:0;
+    const i=(y*w+x)*4; img.data[i]=img.data[i+1]=img.data[i+2]=v; img.data[i+3]=255;
+  }
+  ctx.putImageData(img,0,0);
+}
+
+function drawPyramids(ctx, w, h) {
+  const img=ctx.createImageData(w,h);
+  const step=16;
+  for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+    const lx=((x%step)+step)%step, ly=((y%step)+step)%step;
+    const v=Math.round(255*(1-Math.max(Math.abs(lx-step/2),Math.abs(ly-step/2))/(step/2)));
+    const i=(y*w+x)*4; img.data[i]=img.data[i+1]=img.data[i+2]=Math.max(0,v); img.data[i+3]=255;
+  }
+  ctx.putImageData(img,0,0);
+}
+
+function drawScales(ctx, w, h) {
+  ctx.fillStyle='#000'; ctx.fillRect(0,0,w,h);
+  const r=12, rowH=r*0.9, colW=r*1.8;
+  for(let row=0;row<h/rowH+2;row++){
+    for(let col=0;col<w/colW+2;col++){
+      const ox=row%2===0?0:colW/2;
+      const cx=col*colW+ox, cy=row*rowH;
+      const g=ctx.createRadialGradient(cx,cy+r*0.3,0,cx,cy,r*1.1);
+      g.addColorStop(0,'#fff'); g.addColorStop(1,'#000');
+      ctx.fillStyle=g;
+      ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill();
+    }
+  }
+}
+
+function drawKnurl(ctx, w, h) {
+  const img=ctx.createImageData(w,h);
+  for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+    const a=Math.sin((x-y)*0.35)*0.5+0.5;
+    const b=Math.sin((x+y)*0.35)*0.5+0.5;
+    const v=Math.round(Math.min(a,b)*255);
+    const i=(y*w+x)*4; img.data[i]=img.data[i+1]=img.data[i+2]=v; img.data[i+3]=255;
+  }
+  ctx.putImageData(img,0,0);
+}
+
+function drawWood(ctx, w, h) {
+  const img=ctx.createImageData(w,h);
+  for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+    const warp=Math.sin(x*0.08+y*0.02)*5;
+    const ring=Math.sin((Math.sqrt((x-w/2)**2+(y-h/2+warp)**2))*0.4)*0.5+0.5;
+    const v=Math.round(ring*255);
+    const i=(y*w+x)*4; img.data[i]=img.data[i+1]=img.data[i+2]=v; img.data[i+3]=255;
+  }
+  ctx.putImageData(img,0,0);
+}
+
+function drawLeather(ctx, w, h) {
+  const img=ctx.createImageData(w,h);
+  // Simple multi-octave noise approximation
+  function noise(x,y){
+    return (Math.sin(x*1.5+Math.cos(y*2.3))*0.5+Math.sin(y*1.1+Math.cos(x*3.7))*0.3+
+            Math.sin((x+y)*0.7)*0.2)*0.5+0.5;
+  }
+  for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+    const n=noise(x*0.1,y*0.1)*0.6+noise(x*0.25,y*0.25)*0.4;
+    const v=Math.round(n*255);
+    const i=(y*w+x)*4; img.data[i]=img.data[i+1]=img.data[i+2]=v; img.data[i+3]=255;
+  }
+  ctx.putImageData(img,0,0);
+}
+
+function drawDiamond(ctx, w, h) {
+  const img=ctx.createImageData(w,h);
+  const step=14;
+  for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+    const lx=((x%step)+step)%step-step/2;
+    const ly=((y%step)+step)%step-step/2;
+    const d=(Math.abs(lx)+Math.abs(ly))/(step);
+    const v=Math.round((1-Math.min(1,d*2))*255);
+    const i=(y*w+x)*4; img.data[i]=img.data[i+1]=img.data[i+2]=v; img.data[i+3]=255;
+  }
+  ctx.putImageData(img,0,0);
+}
+
+/* ─── Boot ──────────────────────────────────────────────────────── */
+buildGallery();
+</script>
+</body>
+</html>
